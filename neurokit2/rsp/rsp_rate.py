@@ -128,8 +128,10 @@ def _rsp_rate_xcorr(
         for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 50):
             # Define the sin waves
             sin_wave = np.sin(2 * np.pi * frequency * t)
-            # Calculate cross-correlation
-            _xcorr = np.corrcoef(norm_diff, sin_wave)[0, 1]
+            cov_xy = np.mean((norm_diff - np.mean(norm_diff)) * (sin_wave - np.mean(sin_wave)))
+            std_x = np.std(norm_diff)
+            std_y = np.std(sin_wave)
+            _xcorr = cov_xy / (std_x * std_y)
             xcorr.append(_xcorr)
 
         # Find frequency with the highest xcorr with diff
