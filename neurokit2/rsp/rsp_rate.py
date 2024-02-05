@@ -121,6 +121,7 @@ def _rsp_rate_xcorr(
     for f in range(len(freqs)):
         sines[:, f] = np.sin(2 * np.pi * freqs[f] * t)
     sine_means = np.mean(sines, axis=0)
+    a = np.transpose(sines - np.transpose(sine_means))
     sine_std = np.std(sines, axis=0)
     
     rsp_rate = []
@@ -133,7 +134,6 @@ def _rsp_rate_xcorr(
         norm_diff = diff / np.max(diff)
         norm_diff_mean = np.mean(norm_diff)
         norm_diff_std = np.std(norm_diff)
-        a = np.transpose(sines - np.transpose(sine_means))
         b = (norm_diff - norm_diff_mean)
         res = np.dot(a, b)
         res /= len(norm_diff)
