@@ -113,31 +113,24 @@ def _rsp_rate_xcorr(
 
     # Define paramters
     window_length = int(desired_sampling_rate * window)
-
+    t = np.linspace(0, window, window_length-1 ) 
+    # for comparison of result values, I need to repliate the bug I think there is in https://github.com/neuropsychology/NeuroKit/pull/960
+    freqs = [frequency for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 50)]
+    freqs2 = [frequency for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 60)]
+    sines = np.zeros((len(t), len(freqs)))
+    for f in range(len(freqs)):
+        sines[:, f] = np.sin(2 * np.pi * freqs[f] * t)
+    
     rsp_rate = []
     for start in np.arange(0, N, hop_size):
         window_segment = rsp[start : start + window_length]
         if len(window_segment) < window_length:
-            break  # the last frames that are smaller than windlow_length
+            break  # the last frames that are smaller than window_length
         # Calculate the 1-order difference
         diff = np.ediff1d(window_segment)
         norm_diff = diff / np.max(diff)
-        # Find xcorr for all frequencies with diff
-        xcorr = []
-        t = np.linspace(0, window, len(diff))
-        for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 50):
-            # Define the sin waves
-            sin_wave = np.sin(2 * np.pi * frequency * t)
-            cov_xy = np.mean((norm_diff - np.mean(norm_diff)) * (sin_wave - np.mean(sin_wave)))
-            std_x = np.std(norm_diff)
-            std_y = np.std(sin_wave)
-            _xcorr = cov_xy / (std_x * std_y)
-            xcorr.append(_xcorr)
-
-        # Find frequency with the highest xcorr with diff
-        max_frequency_idx = np.argmax(xcorr)
-        max_frequency = np.arange(5 / 60, 30.25 / 60, 0.25 / 60)[max_frequency_idx]
-        # Append max_frequency to rsp_rate - instanteneous rate
+        cov_matrix = np.cov(norm_diff, sines, rowvar=False)
+        max_frequency = freqs2[np.argmax(cov_matrix[0, 1:])]
         rsp_rate.append(max_frequency)
 
     x = np.arange(len(rsp_rate))
