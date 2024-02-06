@@ -113,17 +113,10 @@ def _rsp_rate_xcorr(
 
     # Define paramters
     window_length = int(desired_sampling_rate * window)
-    t = np.linspace(0, window, window_length-1) 
-    # for comparison of result values, I need to repliate the bug I think there is in https://github.com/neuropsychology/NeuroKit/pull/960
-    freqs = [frequency for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 50)]
-    freqs2 = [frequency for frequency in np.arange(5 / 60, 30.25 / 60, 0.25 / 60)]
-    sines = np.zeros((len(t), len(freqs)))
-    for f in range(len(freqs)):
-        sines[:, f] = np.sin(2 * np.pi * freqs[f] * t)
-    sine_means = np.mean(sines, axis=0)
-    sines_cov = np.transpose(sines - np.transpose(sine_means))
-    sine_std = np.std(sines, axis=0)
-    
+    t = np.linspace(0, window, window_length-1)
+    freqs = np.arange(5 / 60, 30.25 / 60, 0.25 / 60)
+    sines = np.sin(2 * np.pi * freqs[:, np.newaxis] * t)
+    sines_z = (sines - np.mean(sines))/np.std(sines)
     rsp_rate = []
     for start in np.arange(0, N, hop_size):
         window_segment = rsp[start : start + window_length]
@@ -132,10 +125,9 @@ def _rsp_rate_xcorr(
         # Calculate the 1-order difference
         diff = np.ediff1d(window_segment)
         norm_diff = diff / np.max(diff)
-        norm_diff_mean = np.mean(norm_diff)
-        norm_diff_cov = (norm_diff - norm_diff_mean)
-        corrcoeff = np.dot(sines_cov, norm_diff_cov)/sine_std
-        max_frequency = freqs2[np.argmax(corrcoeff)]
+        norm_diff_z = (norm_diff - np.mean(norm_diff)) # don't need to divide as std(norm_diff) is constant
+        corrcoeff = np.dot(sines_z, norm_diff_z) # don't need to divide by n because n is constant
+        max_frequency = freqs[np.argmax(corrcoeff)] # argmax so can ignore multiply by positive constants
         rsp_rate.append(max_frequency)
 
     x = np.arange(len(rsp_rate))
